@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bakım Ekle</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 400px; margin: auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px; }
+        .form-group { margin-bottom: 15px; }
+        label { font-weight: bold; display: block; }
+        select, input { width: 100%; padding: 8px; margin-top: 5px; }
+        #preview { display: none; width: 100%; max-height: 200px; margin-top: 10px; border-radius: 5px; }
+        button { background: #28a745; color: white; padding: 10px; width: 100%; border: none; cursor: pointer; border-radius: 5px; }
+        button:hover { background: #218838; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Bakım Ekle</h2>
+
+    <div class="form-group">
+        <label for="photo">Bakım Fotoğrafı:</label>
+        <input type="file" id="photo" accept="image/*">
+        <img id="preview">
+    </div>
+
+    <div class="form-group">
+        <label for="customer">Müşteri Seç:</label>
+        <select id="customer">
+            <option value="">Yükleniyor...</option>
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label for="ph">pH Değeri:</label>
+        <select id="ph">
+            <option value="">Seçiniz</option>
+            <script>
+                for (let i = 6.0; i <= 8.0; i += 0.1) {
+                    document.write(`<option value="${i.toFixed(1)}">${i.toFixed(1)}</option>`);
+                }
+            </script>
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label for="cl">Cl Değeri:</label>
+        <select id="cl">
+            <option value="">Seçiniz</option>
+            <script>
+                for (let i = 0.0; i <= 4.0; i += 0.1) {
+                    document.write(`<option value="${i.toFixed(1)}">${i.toFixed(1)}</option>`);
+                }
+            </script>
+        </select>
+    </div>
+
+    <button id="submit">Bakım Ekle</button>
+</div>
+
+<script>
+    $(document).ready(function () {
+        // Dinamik müşteri listesi API'den çekiliyor
+        $.get('/api/customers', function (data) {
+            $('#customer').html('<option value="">Seçiniz</option>');
+            data.forEach(customer => {
+                $('#customer').append(`<option value="${customer.id}">${customer.name}</option>`);
+            });
+        }).fail(function () {
+            $('#customer').html('<option value="">Müşteriler Yüklenemedi</option>');
+        });
+
+        // Fotoğraf önizleme
+        $('#photo').change(function (event) {
+            let reader = new FileReader();
+            reader.onload = function (e) {
+                $('#preview').attr('src', e.target.result).show();
+            };
+            reader.readAsDataURL(event.target.files[0]);
+        });
+
+        // Form gönderme işlemi
+        $('#submit').click(function () {
+            let customer = $('#customer').val();
+            let ph = $('#ph').val();
+            let cl = $('#cl').val();
+            let photo = $('#photo')[0].files[0];
+
+            if (!customer || !ph || !cl || !photo) {
+                Swal.fire("Hata", "Lütfen tüm alanları doldurun!", "error");
+                return;
+            }
+
+            let formData = new FormData();
+            formData.append("customer", customer);
+            formData.append("ph", ph);
+            formData.append("cl", cl);
+            formData.append("photo", photo);
+
+            $.ajax({
+                url: "/api/bakim/ekle",
+                type: "POST",
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function () {
+                    Swal.fire("Başarılı", "Bakım başarıyla eklendi!", "success");
+                    $('#customer').val('');
+                    $('#ph').val('');
+                    $('#cl').val('');
+                    $('#photo').val('');
+                    $('#preview').hide();
+                },
+                error: function () {
+                    Swal.fire("Hata", "Bakım eklenirken bir hata oluştu!", "error");
+                }
+            });
+        });
+    });
+</script>
+
+</body>
+</html>
